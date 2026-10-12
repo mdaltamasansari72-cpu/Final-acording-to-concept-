@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mira Bhayandar Flyover - Ultimate 3D Simulation</title>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0b0f19; }
+        
+        /* Live Safety Status Badge */
+        #safety-badge { position: absolute; top: 15px; left: 50%; transform: translateX(-50%); background: rgba(18, 24, 38, 0.95); border: 2px solid #2563eb; padding: 10px 25px; border-radius: 30px; font-weight: bold; font-size: 15px; color: #10b981; z-index: 20; box-shadow: 0 4px 15px rgba(0,0,0,0.5); letter-spacing: 0.5px; }
+
+        /* Input Panel Styling */
+        #ui-panel { position: absolute; top: 75px; left: 15px; background: rgba(18, 24, 38, 0.95); border: 1px solid #2a3b5c; padding: 20px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.6); width: 270px; z-index: 10; max-height: 80vh; overflow-y: auto; color: #fff; }
+        .input-group { margin-bottom: 12px; }
+        .input-group label { display: block; font-size: 13px; font-weight: bold; margin-bottom: 4px; color: #a0aec0; }
+        .input-group input, .input-group select { width: 100%; padding: 6px; background: #1a2234; border: 1px solid #3b4d71; color: white; border-radius: 4px; box-sizing: border-box; }
+        .input-group input[type="range"] { padding: 0; cursor: pointer; }
+        button { width: 100%; padding: 10px; background: #2563eb; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: background 0.2s; margin-top: 5px; }
+        button:hover { background: #1d4ed8; }
+
+        /* Coordinates Panel Styling */
+        #coords-panel { position: absolute; top: 75px; right: 15px; background: rgba(18, 24, 38, 0.95); border: 1px solid #2a3b5c; padding: 20px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.6); width: 250px; max-height: 70vh; overflow-y: auto; z-index: 10; color: #fff; }
+        #coords-panel h3 { margin-top: 0; font-size: 16px; color: #60a5fa; text-align: center; border-bottom: 2px solid #2563eb; padding-bottom: 5px; }
+        #coords-list { list-style-type: none; padding: 0; margin: 0; font-size: 14px; color: #cbd5e1; }
+        #coords-list li { padding: 5px 0; border-bottom: 1px dashed #2a3b5c; }
+
+        /* Audio controls */
+        #audio-panel { position:absolute; left:15px; bottom:48px; z-index:15; width:270px; box-sizing:border-box; padding:12px 14px; border:1px solid #2a3b5c; border-radius:10px; background:rgba(18,24,38,.95); color:#fff; box-shadow:0 4px 20px rgba(0,0,0,.45); }
+        #audio-panel button { margin-top:5px; }
+        #audio-panel label { display:block; font-size:12px; color:#cbd5e1; margin-top:8px; }
+        #audio-panel input[type=range] { width:100%; }
+        #audio-status { font-size:11px; color:#93c5fd; margin-top:5px; }
+        @media(max-width:700px) { #audio-panel { bottom:42px; width:220px; padding:8px; } #coords-panel { width:190px; right:8px; padding:10px; } #ui-panel { left:8px; width:220px; padding:10px; } }
+
+        /* Compact desktop layout: keep the main controls visible without a long scroll. */
+        #safety-badge { top: 8px; padding: 7px 16px; font-size: 12px; }
+        #ui-panel { top: 54px; left: 10px; width: 278px; padding: 10px 11px; max-height: calc(100vh - 140px); border-radius: 8px; }
+        #ui-panel h3 { font-size: 14px; margin-bottom: 8px; }
+        #ui-panel .input-group { display: inline-block; vertical-align: top; width: calc(50% - 7px); margin: 0 5px 5px 0; }
+        #ui-panel .input-group label { min-height: 23px; margin-bottom: 3px; font-size: 10.5px; line-height: 1.15; }
+        #ui-panel .input-group input, #ui-panel .input-group select { height: 25px; padding: 3px 5px; font-size: 11px; }
+        #ui-panel .input-group input[type="range"] { height: 18px; padding: 0; }
+        #ui-panel button { padding: 7px 8px; font-size: 11px; margin-top: 2px; }
+        #coords-panel { top: 54px; right: 10px; width: 225px; padding: 11px 12px; max-height: 67vh; border-radius: 8px; }
+        #coords-panel h3 { font-size: 13px; padding-bottom: 4px; margin-bottom: 5px; }
+        #coords-list { font-size: 11.5px; }
+        #coords-list li { padding: 4px 0; }
+        #audio-panel { left: 10px; bottom: 34px; width: 278px; padding: 8px 10px; border-radius: 8px; }
+        #audio-panel > div:first-child { font-size: 12px !important; }
+        #audio-panel button { padding: 6px 7px; font-size: 10.5px; margin-top: 3px; }
+        #audio-panel label { font-size: 10px; margin-top: 5px; }
+        #audio-panel input[type=range] { height: 15px; }
+        #audio-status { font-size: 9.5px; line-height: 1.2; margin-top: 3px; }
+        #footer { bottom: 5px; font-size: 11px; }
+        @media(max-width:700px) {
+            #safety-badge { top: 5px; font-size: 9px; padding: 6px 9px; }
+            #ui-panel { top: 42px; left: 6px; width: 225px; padding: 8px; max-height: calc(100vh - 145px); }
+            #ui-panel .input-group { width: calc(50% - 6px); margin-right: 3px; }
+            #ui-panel .input-group label { font-size: 9px; min-height: 21px; }
+            #ui-panel .input-group input, #ui-panel .input-group select { font-size: 10px; }
+            #coords-panel { top: 42px; right: 6px; width: 155px; padding: 7px; max-height: 42vh; }
+            #coords-panel h3 { font-size: 10px; }
+            #coords-list { font-size: 9px; }
+            #audio-panel { left: 6px; bottom: 27px; width: 225px; padding: 7px; }
+            #audio-panel button { font-size: 9px; }
+        }
+
+        /* Clean, sharp full-screen canvas and tiny edge sound toggle. */
+        canvas { position: fixed; inset: 0; display: block; width: 100%; height: 100%; z-index: 0; }
+        #audio-panel { display: none !important; }
+        .audio-quick-toggle {
+            position: fixed; right: 12px; bottom: 58px; z-index: 45;
+            width: auto !important; min-width: 78px; padding: 7px 10px !important;
+            margin: 0 !important; border-radius: 22px; border: 1px solid #66758b;
+            background: rgba(10, 15, 24, .92); color: #e8f3ff;
+            font-size: 10px !important; font-weight: 800; letter-spacing: .35px;
+            box-shadow: 0 3px 12px rgba(0,0,0,.55); backdrop-filter: blur(5px);
+        }
+        .audio-quick-toggle.on { background: rgba(5, 90, 64, .95); border-color: #34d399; color: #d1fae5; }
+        @media(max-width:700px) { .audio-quick-toggle { right: 7px; bottom: 42px; min-width: 68px; padding: 6px 8px !important; font-size: 9px !important; } }
+
+        /* Footer Styling */
+        #footer { position: absolute; bottom: 5px; width: 100%; text-align: center; color: #94a3b8; font-weight: bold; font-size: 11px; text-shadow: 1px 1px 3px rgba(0,0,0,0.9); z-index: 10; pointer-events: none; }
+    </style>
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+
+    <!-- Live Safety Status Badge -->
+    <div id="safety-badge">✅ STATUS: SAFE DESIGN</div>
+
+    <!-- User Input Panel -->
+    <div id="ui-panel">
+        <h3 style="margin-top:0; color:#60a5fa;">Flyover Parameters</h3>
+        <div class="input-group">
+            <label>Total Road Length (m)</label>
+            <input type="number" id="totalLength" value="800">
+        </div>
+        <div class="input-group">
+            <label>Transition Length (m)</label>
+            <input type="number" id="transLength" value="140">
+        </div>
+        <div class="input-group">
+            <label>Start Width (m)</label>
+            <input type="number" id="startWidth" value="14">
+        </div>
+        <div class="input-group">
+            <label>End Width (m)</label>
+            <input type="number" id="endWidth" value="7">
+        </div>
+        <div class="input-group">
+            <label>Flyover Peak Height (m)</label>
+            <input type="number" id="flyoverHeight" value="12">
+        </div>
+        <div class="input-group">
+            <label>Car Speed: <span id="speedLabel" style="color:#60a5fa;">0.85</span></label>
+            <input type="range" id="carSpeed" min="0.3" max="2.0" step="0.1" value="0.85" oninput="updateSpeedLabel()">
+        </div>
+        <div class="input-group">
+            <label>Theme Mode</label>
+            <select id="themeMode" onchange="switchTheme()">
+                <option value="dark">Dark CAD Mode</option>
+                <option value="blueprint">Engineering Blueprint</option>
+            </select>
+        </div>
+        <div class="input-group">
+            <label>Camera Mode</label>
+            <select id="cameraMode" onchange="switchCameraMode()">
+                <option value="orbit">Orbit View</option>
+                <option value="driver">Driver View (First-Person)</option>
+                <option value="drone">Drone Cinematic View</option>
+            </select>
+        </div>
+        <button onclick="generateModel()">Generate 3D Flyover</button>
+    </div>
+
+    <!-- Coordinates Display Panel -->
+    <div id="coords-panel">
+        <h3>Transition Coordinates</h3>
+        <ul id="coords-list"></ul>
+    </div>
+
+    <!-- Tiny edge-mounted sound toggle. Browser audio begins only after a user click. -->
+    <button id="audioToggle" class="audio-quick-toggle" onclick="toggleAllAudio()" aria-pressed="false" title="Turn engine, road ambience and spatial music on/off">🔇 SOUND OFF</button>
+
+    <!-- Footer for Credits -->
+    <div id="footer">
+        Credits to developer (Altamas)
+    </div>
+
+    <script>
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0b0f19); 
+        scene.fog = new THREE.FogExp2(0x0b0f19, 0.00028); // Very light atmospheric depth, not a blur veil.
+        
+        const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.05, 12000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.06;
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.domElement.style.imageRendering = 'auto';
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.075;
+        controls.zoomSpeed = 1.15;
+        controls.minDistance = 8;
+        controls.maxDistance = 5000;
+        controls.screenSpacePanning = true;
+        
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
+        scene.add(ambientLight);
+        
+        const dirLight = new THREE.DirectionalLight(0x93c5fd, 0.95);
+        dirLight.position.set(250, 450, 250);
+        dirLight.castShadow = true;
+        dirLight.shadow.mapSize.set(2048, 2048);
+        dirLight.shadow.camera.near = 1;
+        dirLight.shadow.camera.far = 2600;
+        dirLight.shadow.bias = -0.0002;
+        scene.add(dirLight);
+
+        const groundGeo = new THREE.PlaneGeometry(3000, 3000, 60, 60);
+        const groundMat = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.9, metalness: 0.1 }); 
+        const ground = new THREE.Mesh(groundGeo, groundMat);
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = -0.2;
+        scene.add(ground);
+
+        const gridHelper = new THREE.GridHelper(3000, 60, 0x2563eb, 0x1f2937);
+        gridHelper.position.y = -0.15;
+        scene.add(gridHelper);
+
+        let flyoverGroup = new THREE.Group();
+        scene.add(flyoverGroup);
+
+        let cars = [];
+        let totalLen = 800, transLen = 140, w1 = 14, w2 = 7, peakHeight = 12;
+        let straightLenStart = 330, z1 = 330, z2 = 470, z3 = 800;
+        let currentCamMode = "orbit";
+        let droneAngle = 0;
+        let isInitialLoad = true; // Flag to handle initial camera placement only once
+
+        // Web Audio sounds are synthesized locally; no external audio files are required.
+        let audioCtx = null, masterGain = null, engineGain = null, roadGain = null;
+        let engineOsc1 = null, engineOsc2 = null, roadSource = null, roadFilter = null;
+        let musicGain = null, musicTimer = null, musicEnabled = false, drivingSoundEnabled = false;
+        let musicOscillators = [], spatialPanner = null;
+
+        // Driver-view headlights are independent of the hidden player-car mesh, so the road
+        // remains illuminated in first-person view while the dashboard/body stays out of frame.
+        const driverHeadlights = [];
+        for (const side of [-1, 1]) {
+            const light = new THREE.SpotLight(0xeaf4ff, 2.0, 42, Math.PI / 6, 0.62, 1.35);
+            light.castShadow = false;
+            light.visible = false;
+            const target = new THREE.Object3D();
+            scene.add(light);
+            scene.add(target);
+            light.target = target;
+            driverHeadlights.push({ light, target, side });
+        }
+
+        function ensureAudio() {
+            if (audioCtx) { if (audioCtx.state === 'suspended') audioCtx.resume(); return; }
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (!AC) { const toggle = document.getElementById('audioToggle'); if (toggle) { toggle.textContent = '🔇 NO AUDIO'; toggle.title = 'Web Audio is not supported in this browser.'; } return; }
+            audioCtx = new AC();
+            masterGain = audioCtx.createGain(); masterGain.gain.value = 1.0; masterGain.connect(audioCtx.destination); // Fixed full master volume.
+            engineGain = audioCtx.createGain(); engineGain.gain.value = 0; engineGain.connect(masterGain);
+            engineOsc1 = audioCtx.createOscillator(); engineOsc1.type = 'sawtooth'; engineOsc1.frequency.value = 48; engineOsc1.connect(engineGain); engineOsc1.start();
+            engineOsc2 = audioCtx.createOscillator(); engineOsc2.type = 'triangle'; engineOsc2.frequency.value = 24; const e2g = audioCtx.createGain(); e2g.gain.value = 0.35; engineOsc2.connect(e2g); e2g.connect(engineGain); engineOsc2.start();
+            // Soft filtered noise gives a tyre/road rush without needing downloaded sound files.
+            const buffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 2, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0); for (let i=0;i<data.length;i++) data[i] = (Math.random()*2-1) * 0.55;
+            roadSource = audioCtx.createBufferSource(); roadSource.buffer = buffer; roadSource.loop = true;
+            roadFilter = audioCtx.createBiquadFilter(); roadFilter.type = 'lowpass'; roadFilter.frequency.value = 500;
+            roadGain = audioCtx.createGain(); roadGain.gain.value = 0;
+            spatialPanner = audioCtx.createStereoPanner(); spatialPanner.pan.value = 0;
+            roadSource.connect(roadFilter); roadFilter.connect(roadGain); roadGain.connect(spatialPanner); spatialPanner.connect(masterGain); roadSource.start();
+            musicGain = audioCtx.createGain(); musicGain.gain.value = 0; musicGain.connect(masterGain);
+        }
+        function toggleDrivingSound() {
+            ensureAudio(); if (!audioCtx) return;
+            drivingSoundEnabled = !drivingSoundEnabled;
+            engineGain.gain.setTargetAtTime(drivingSoundEnabled ? 0.10 : 0, audioCtx.currentTime, 0.18);
+            roadGain.gain.setTargetAtTime(drivingSoundEnabled ? 0.13 : 0, audioCtx.currentTime, 0.25);
+            refreshAudioToggle();
+        }
+        function toggleSpatialMusic() {
+            ensureAudio(); if (!audioCtx) return;
+            musicEnabled = !musicEnabled;
+            if (musicEnabled) {
+                // Gentle original synth pad + repeating notes, with slow stereo movement for a spatial feel.
+                const pad = audioCtx.createOscillator(); pad.type = 'sine'; pad.frequency.value = 110;
+                const pad2 = audioCtx.createOscillator(); pad2.type = 'triangle'; pad2.frequency.value = 164.81;
+                const padGain = audioCtx.createGain(); padGain.gain.value = 0.22;
+                const musicPanner = audioCtx.createStereoPanner(); musicPanner.pan.value = -0.35;
+                pad.connect(padGain); pad2.connect(padGain); padGain.connect(musicPanner); musicPanner.connect(musicGain);
+                pad.start(); pad2.start(); musicOscillators.push(pad,pad2);
+                musicGain.gain.setTargetAtTime(0.13, audioCtx.currentTime, 0.8);
+                let noteIndex = 0; const notes = [220, 261.63, 329.63, 293.66, 196, 246.94];
+                musicTimer = setInterval(() => {
+                    if (!audioCtx || !musicEnabled) return;
+                    const osc = audioCtx.createOscillator(), g = audioCtx.createGain(), pan = audioCtx.createStereoPanner();
+                    osc.type = 'sine'; osc.frequency.value = notes[noteIndex++ % notes.length];
+                    pan.pan.value = Math.sin(noteIndex * 0.9) * 0.85;
+                    g.gain.setValueAtTime(0.0001, audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.12, audioCtx.currentTime + 0.08); g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 1.2);
+                    osc.connect(g); g.connect(pan); pan.connect(musicGain); osc.start(); osc.stop(audioCtx.currentTime + 1.25);
+                }, 650);
+                // Gently sweep the stereo image left-to-right.
+                musicPanner.pan.setValueAtTime(-0.45, audioCtx.currentTime); musicPanner.pan.linearRampToValueAtTime(0.45, audioCtx.currentTime + 5);
+                musicPanner.pan.linearRampToValueAtTime(-0.45, audioCtx.currentTime + 10);
+            } else {
+                musicGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.3);
+                if (musicTimer) clearInterval(musicTimer); musicTimer = null;
+                musicOscillators.forEach(o => { try { o.stop(); } catch(e) {} }); musicOscillators = [];
+            }
+            refreshAudioToggle();
+        }
+        let allAudioEnabled = false;
+        function refreshAudioToggle() {
+            const button = document.getElementById('audioToggle');
+            if (!button) return;
+            const on = allAudioEnabled || (drivingSoundEnabled && musicEnabled);
+            button.textContent = on ? '🔊 SOUND ON' : '🔇 SOUND OFF';
+            button.classList.toggle('on', on);
+            button.setAttribute('aria-pressed', String(on));
+            button.title = on ? 'Engine, road ambience and spatial music are ON (fixed full master volume)' : 'Click to turn engine, road ambience and spatial music ON';
+        }
+        function toggleAllAudio() {
+            ensureAudio();
+            if (!audioCtx) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            allAudioEnabled = !allAudioEnabled;
+            if (allAudioEnabled) {
+                if (!drivingSoundEnabled) toggleDrivingSound();
+                if (!musicEnabled) toggleSpatialMusic();
+                if (masterGain) masterGain.gain.setTargetAtTime(1.0, audioCtx.currentTime, 0.05);
+            } else {
+                if (drivingSoundEnabled) toggleDrivingSound();
+                if (musicEnabled) toggleSpatialMusic();
+                if (masterGain) masterGain.gain.setTargetAtTime(1.0, audioCtx.currentTime, 0.05);
+            }
+            refreshAudioToggle();
+        }
+
+        function updateSpeedLabel() {
+            document.getElementById('speedLabel').innerText = document.getElementById('carSpeed').value;
+        }
+
+        function switchTheme() {
+            const theme = document.getElementById('themeMode').value;
+            if (theme === 'blueprint') {
+                scene.background = new THREE.Color(0x0f172a);
+                groundMat.color.setHex(0x1e3a8a);
+                gridHelper.material.color.setHex(0x93c5fd);
+            } else {
+                scene.background = new THREE.Color(0x0b0f19);
+                groundMat.color.setHex(0x111827);
+                gridHelper.material.color.setHex(0x2563eb);
+            }
+        }
+
+        // Create a subtle, high-resolution, near-black asphalt texture directly in the browser.
+        // Procedural CanvasTexture means no external image files are required.
+        function createAsphaltTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024;
+            canvas.height = 1024;
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            const image = ctx.createImageData(canvas.width, canvas.height);
+            let seed = 739391;
+            const rand = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+            for (let i = 0; i < image.data.length; i += 4) {
+                const n = Math.floor(rand() * 31);
+                const base = 21 + n;
+                image.data[i] = base;
+                image.data[i + 1] = base + Math.floor(rand() * 3);
+                image.data[i + 2] = base + Math.floor(rand() * 5);
+                image.data[i + 3] = 255;
+            }
+            ctx.putImageData(image, 0, 0);
+            // Sparse fine aggregate flecks and very faint roller/patch variation.
+            for (let i = 0; i < 6200; i++) {
+                const x = rand() * canvas.width, y = rand() * canvas.height;
+                const shade = rand() > 0.52 ? 'rgba(115,120,125,0.11)' : 'rgba(0,0,0,0.15)';
+                ctx.fillStyle = shade;
+                ctx.fillRect(x, y, 1 + rand() * 2.2, 1 + rand() * 2.2);
+            }
+            for (let i = 0; i < 16; i++) {
+                const y = rand() * canvas.height;
+                ctx.fillStyle = 'rgba(120,125,130,0.025)';
+                ctx.fillRect(0, y, canvas.width, 1 + rand() * 3);
+            }
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.magFilter = THREE.LinearFilter;
+            texture.minFilter = THREE.LinearMipmapLinearFilter;
+            texture.generateMipmaps = true;
+            texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+            texture.encoding = THREE.sRGBEncoding;
+            texture.needsUpdate = true;
+            return texture;
+        }
+        const asphaltTexture = createAsphaltTexture();
+
+        function getElevation(z) {
+            if (z <= z1) {
+                if (z1 === 0) return peakHeight;
+                return (z / z1) * peakHeight;
+            } else if (z >= z2) {
+                if (z3 === z2) return 0;
+                return peakHeight * (1 - (z - z2) / (z3 - z2));
+            } else {
+                return peakHeight;
+            }
+        }
+
+        function generateModel() {
+            totalLen = parseFloat(document.getElementById('totalLength').value);
+            transLen = parseFloat(document.getElementById('transLength').value);
+            w1 = parseFloat(document.getElementById('startWidth').value);
+            w2 = parseFloat(document.getElementById('endWidth').value);
+            peakHeight = parseFloat(document.getElementById('flyoverHeight').value);
+
+            if (transLen > totalLen) {
+                alert("Transition length cannot be greater than Total Road Length!");
+                return;
+            }
+
+            const badge = document.getElementById('safety-badge');
+            if (transLen === 0) {
+                badge.innerHTML = "⚠️ STATUS: CRITICAL HAZARD (0m Transition)";
+                badge.style.color = "#ef4444";
+                badge.style.borderColor = "#ef4444";
+            } else {
+                badge.innerHTML = "✅ STATUS: SAFE DESIGN & TRANSITION";
+                badge.style.color = "#10b981";
+                badge.style.borderColor = "#2563eb";
+            }
+
+            scene.remove(flyoverGroup);
+            flyoverGroup = new THREE.Group();
+            scene.add(flyoverGroup);
+            cars = [];
+
+            straightLenStart = (totalLen - transLen) / 2;
+            z1 = straightLenStart;
+            z2 = straightLenStart + transLen;
+            z3 = totalLen;
+            controls.maxDistance = Math.max(300, totalLen * 2.3);
+            camera.far = Math.max(12000, totalLen * 4);
+            camera.updateProjectionMatrix();
+
+            const hw1 = w1 / 2;
+            const hw2 = w2 / 2;
+            const y0 = getElevation(0);
+            const y1 = getElevation(z1);
+            const y2 = getElevation(z2);
+            const y3 = getElevation(z3);
+
+            const geometry = new THREE.BufferGeometry();
+            const vertices = new Float32Array([
+                -hw1, y0, 0,    hw1, y0, 0,    -hw1, y1, z1,
+                hw1, y0, 0,     hw1, y1, z1,   -hw1, y1, z1,
+
+                -hw1, y1, z1,   hw1, y1, z1,   -hw2, y2, z2,
+                hw1, y1, z1,    hw2, y2, z2,   -hw2, y2, z2,
+
+                -hw2, y2, z2,   hw2, y2, z2,   -hw2, y3, z3,
+                hw2, y2, z2,    hw2, y3, z3,   -hw2, y3, z3
+            ]);
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+            const v1 = z1 / Math.max(1, totalLen), v2 = z2 / Math.max(1, totalLen);
+            const uvs = new Float32Array([
+                0,0,  1,0,  0,v1,  1,0,  1,v1,  0,v1,
+                0,v1, 1,v1, 0,v2, 1,v1, 1,v2, 0,v2,
+                0,v2, 1,v2, 0,1,  1,v2, 1,1,  0,1
+            ]);
+            geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
+            geometry.computeVertexNormals();
+
+            asphaltTexture.repeat.set(1, Math.max(1, totalLen / 26));
+            asphaltTexture.needsUpdate = true;
+            const roadMaterial = new THREE.MeshStandardMaterial({
+                color: 0xd5d8dc, map: asphaltTexture, roughness: 0.96, metalness: 0.015,
+                side: THREE.DoubleSide
+            });
+            const roadMesh = new THREE.Mesh(geometry, roadMaterial);
+            roadMesh.receiveShadow = true;
+            flyoverGroup.add(roadMesh);
+
+            const barrierMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.4 });
+            createBarrierSegment(0, z1, y0, y1, hw1, hw1, barrierMat);
+            createBarrierSegment(z1, z2, y1, y2, hw1, hw2, barrierMat);
+            createBarrierSegment(z2, z3, y2, y3, hw2, hw2, barrierMat);
+
+            const pierMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.5 });
+            for (let pz = Math.max(20, straightLenStart - 20); pz <= straightLenStart + transLen + 20; pz += 45) {
+                if (pz >= totalLen - 10) break;
+                let pY = getElevation(pz);
+                if (pY > 2) {
+                    const pierGeo = new THREE.CylinderGeometry(1.2, 1.4, pY, 16);
+                    const leftPier = new THREE.Mesh(pierGeo, pierMat);
+                    leftPier.position.set(-w1 * 0.35, pY / 2, pz);
+                    flyoverGroup.add(leftPier);
+
+                    const rightPier = new THREE.Mesh(pierGeo, pierMat);
+                    rightPier.position.set(w1 * 0.35, pY / 2, pz);
+                    flyoverGroup.add(rightPier);
+                }
+            }
+
+            // Roadside overhead lights, reflective lane markings and mixed two-way traffic.
+            createStreetLights();
+            createRoadMarkings();
+
+            // The road begins with four lanes and merges toward two lanes through the transition.
+            // Negative x lanes travel toward +Z; positive x lanes travel toward -Z.
+            const trafficPlan = [
+                { type: 'car',        lane: -1.5, z: 10,                player: true  },
+                { type: 'motorcycle', lane: -0.5, z: totalLen * 0.14 },
+                { type: 'truck',      lane:  0.5, z: totalLen * 0.23 },
+                { type: 'car',        lane:  1.5, z: totalLen * 0.32 },
+                { type: 'motorcycle', lane: -1.5, z: totalLen * 0.42 },
+                { type: 'truck',      lane: -0.5, z: totalLen * 0.52 },
+                { type: 'car',        lane:  0.5, z: totalLen * 0.61 },
+                { type: 'motorcycle', lane:  1.5, z: totalLen * 0.70 },
+                { type: 'truck',      lane: -1.5, z: totalLen * 0.80 },
+                { type: 'car',        lane:  0.5, z: totalLen * 0.90 }
+            ];
+            trafficPlan.forEach(v => createVehicle(v.type, Math.min(totalLen - 1, v.z), v.lane, !!v.player));
+
+            // Camera Position lock: Only set default position on very first load. Subsequent generations preserve user's current view.
+            if (isInitialLoad && currentCamMode === "orbit") {
+                camera.position.set(0, peakHeight + 35, -70);
+                controls.target.set(0, peakHeight / 2, totalLen / 2);
+                controls.update();
+                isInitialLoad = false;
+            }
+
+            calculateTransitionCoordinates(transLen, w1, w2);
+            // Re-apply selected camera mode after rebuilding the model/cars.
+            switchCameraMode();
+        }
+
+        function getRoadWidthAt(z) {
+            if (z <= z1) return w1;
+            if (z >= z2) return w2;
+            const t = (z - z1) / Math.max(1, z2 - z1);
+            return w1 + (w2 - w1) * t;
+        }
+
+        function createStreetLights() {
+            const poleMat = new THREE.MeshStandardMaterial({ color: 0x3b4654, metalness: 0.72, roughness: 0.34 });
+            const armMat = new THREE.MeshStandardMaterial({ color: 0x526071, metalness: 0.65, roughness: 0.38 });
+            const housingMat = new THREE.MeshStandardMaterial({ color: 0x263241, metalness: 0.42, roughness: 0.4 });
+            const lampMat = new THREE.MeshStandardMaterial({ color: 0xffe6ad, emissive: 0xffb84d, emissiveIntensity: 2.5, roughness: 0.22 });
+            const poleHeight = 5.2;
+            let lightIndex = 0;
+
+            // Paired lamp posts follow the full deck, including the narrowing transition.
+            for (let z = 24; z < totalLen - 8; z += 55, lightIndex++) {
+                const deckY = getElevation(z);
+                const roadWidth = getRoadWidthAt(z);
+                for (const side of [-1, 1]) {
+                    const poleX = side * (roadWidth / 2 + 0.72);
+                    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.11, poleHeight, 8), poleMat);
+                    pole.position.set(poleX, deckY + poleHeight / 2, z);
+                    flyoverGroup.add(pole);
+
+                    // Short arm reaches inward over the traffic lanes.
+                    const arm = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.075, 0.075), armMat);
+                    arm.position.set(poleX - side * 0.68, deckY + poleHeight - 0.16, z);
+                    flyoverGroup.add(arm);
+
+                    const lampX = poleX - side * 1.28;
+                    const housing = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.16, 0.28), housingMat);
+                    housing.position.set(lampX, deckY + poleHeight - 0.19, z);
+                    flyoverGroup.add(housing);
+                    const bulb = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.035, 0.19), lampMat);
+                    bulb.position.set(lampX, deckY + poleHeight - 0.285, z);
+                    flyoverGroup.add(bulb);
+
+                    // Limit actual dynamic lights to alternating posts to keep rendering smooth.
+                    if (lightIndex % 2 === 0) {
+                        const lampLight = new THREE.SpotLight(0xffd39a, 2.2, 54, Math.PI / 4.5, 0.72, 1.6);
+                        lampLight.position.set(lampX, deckY + poleHeight - 0.24, z);
+                        lampLight.target.position.set(lampX - side * 0.4, deckY + 0.08, z + 3.5);
+                        lampLight.castShadow = false;
+                        flyoverGroup.add(lampLight);
+                        flyoverGroup.add(lampLight.target);
+                    }
+                }
+            }
+        }
+
+        function createRoadMarkings() {
+            // Slightly emissive paint remains visible at night and under the streetlights.
+            const paintMat = new THREE.MeshStandardMaterial({
+                color: 0xf3f7ff, emissive: 0x65788c, emissiveIntensity: 0.42,
+                roughness: 0.52, metalness: 0.04
+            });
+            const studMat = new THREE.MeshStandardMaterial({
+                color: 0xffffff, emissive: 0xeaf5ff, emissiveIntensity: 2.2,
+                roughness: 0.24, metalness: 0.1
+            });
+            const edgeMat = new THREE.MeshStandardMaterial({
+                color: 0xe8edf3, emissive: 0x8194a6, emissiveIntensity: 0.3,
+                roughness: 0.5
+            });
+            const dashLength = 4.1;
+
+            for (let z = 3; z < totalLen - 1; z += 8.5) {
+                const roadWidth = getRoadWidthAt(z);
+                const y = getElevation(z) + 0.035;
+                let merge = 0;
+                if (z > z1 && z < z2) merge = (z - z1) / Math.max(1, z2 - z1);
+                else if (z >= z2) merge = 1;
+                const innerLaneX = (roadWidth * 0.25) * (1 - merge);
+
+                // Dashed white lane boundaries; the two inner lane lines converge as lanes merge.
+                const laneXs = [0];
+                if (z < z2) laneXs.push(-innerLaneX, innerLaneX);
+                laneXs.forEach((x, idx) => {
+                    if (idx > 0 && Math.abs(x) < 0.22) return;
+                    const dash = new THREE.Mesh(new THREE.BoxGeometry(0.105, 0.025, dashLength), paintMat);
+                    dash.position.set(x, y, z + dashLength / 2);
+                    flyoverGroup.add(dash);
+                });
+
+                // Solid white edge guide strips, tucked just inside both road edges.
+                for (const side of [-1, 1]) {
+                    const edgeX = side * (roadWidth / 2 - 0.23);
+                    const edgeDash = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.025, dashLength), edgeMat);
+                    edgeDash.position.set(edgeX, y, z + dashLength / 2);
+                    flyoverGroup.add(edgeDash);
+                }
+            }
+
+            // Bright raised road studs: center divider plus the lane dividers while four lanes remain.
+            // Their small luminous caps give the classic white divider-light look at night.
+            for (let z = 7; z < totalLen - 1; z += 7.5) {
+                const roadWidth = getRoadWidthAt(z);
+                let merge = 0;
+                if (z > z1 && z < z2) merge = (z - z1) / Math.max(1, z2 - z1);
+                else if (z >= z2) merge = 1;
+                const offsets = [0];
+                if (z < z2) offsets.push(-roadWidth * 0.25 * (1 - merge), roadWidth * 0.25 * (1 - merge));
+                for (const x of offsets) {
+                    if (Math.abs(x) > 0.12 && Math.abs(x) < 0.2) continue;
+                    const stud = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.055, 0.28), studMat);
+                    stud.position.set(x, getElevation(z) + 0.042, z);
+                    flyoverGroup.add(stud);
+                }
+            }
+        }
+
+        function createBarrierSegment(zStart, zEnd, yStart, yEnd, widthStart, widthEnd, material) {
+            const steps = 10;
+            const dz = (zEnd - zStart) / steps;
+            for (let i = 0; i < steps; i++) {
+                let zA = zStart + i * dz;
+                let zB = zStart + (i + 1) * dz;
+                let yA = yStart + (yEnd - yStart) * (i / steps);
+                let yB = yStart + (yEnd - yStart) * ((i + 1) / steps);
+                let wA = widthStart + (widthEnd - widthStart) * (i / steps);
+                let wB = widthStart + (widthEnd - widthStart) * ((i + 1) / steps);
+
+                flyoverGroup.add(createBeamGeometry(-wA, yA, zA, -wB, yB, zB, 0.5, 0.8, material));
+                flyoverGroup.add(createBeamGeometry(wA, yA, zA, wB, yB, zB, 0.5, 0.8, material));
+            }
+        }
+
+        function createBeamGeometry(x1, y1, z1, x2, y2, z2, width, height, material) {
+            const length = Math.sqrt(Math.pow(x2-x1, 2) + Math.pow(y2-y1, 2) + Math.pow(z2-z1, 2));
+            const geom = new THREE.BoxGeometry(width, height, length);
+            const mesh = new THREE.Mesh(geom, material);
+            mesh.position.set((x1+x2)/2, (y1+y2)/2 + height/2, (z1+z2)/2);
+            mesh.lookAt(x2, y2 + height/2, z2);
+            return mesh;
+        }
+
+        function getVehicleLaneX(z, laneIndex) {
+            const roadWidth = getRoadWidthAt(z);
+            const startX = laneIndex * w1 / 4;
+            const endX = Math.sign(laneIndex || 1) * Math.min(roadWidth * 0.25, 1.7);
+            if (z <= z1) return laneIndex * roadWidth / 4;
+            if (z >= z2) return endX;
+            const t = (z - z1) / Math.max(1, z2 - z1);
+            return startX + (endX - startX) * t;
+        }
+
+        function addVehicleLights(group, halfWidth, frontZ, rearZ, lampY) {
+            const headMat = new THREE.MeshStandardMaterial({
+                color: 0xffffff, emissive: 0xeaf4ff, emissiveIntensity: 3.6,
+                roughness: 0.18, metalness: 0.05
+            });
+            const tailMat = new THREE.MeshStandardMaterial({
+                color: 0xff2018, emissive: 0xff1008, emissiveIntensity: 2.8,
+                roughness: 0.22
+            });
+            const amberMat = new THREE.MeshStandardMaterial({
+                color: 0xffb52e, emissive: 0xff8a12, emissiveIntensity: 1.7,
+                roughness: 0.24
+            });
+            const lampWidth = Math.max(0.12, Math.min(0.34, halfWidth * 0.48));
+            for (const side of [-1, 1]) {
+                const head = new THREE.Mesh(new THREE.BoxGeometry(lampWidth, 0.14, 0.075), headMat);
+                head.position.set(side * halfWidth * 0.62, lampY, frontZ);
+                group.add(head);
+                const tail = new THREE.Mesh(new THREE.BoxGeometry(lampWidth, 0.15, 0.075), tailMat);
+                tail.position.set(side * halfWidth * 0.62, lampY, rearZ);
+                group.add(tail);
+                const marker = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.075, 0.075), amberMat);
+                marker.position.set(side * (halfWidth + 0.012), lampY - 0.12, rearZ + 0.12);
+                group.add(marker);
+            }
+        }
+
+        function createVehicle(type, initialZ, laneIndex, isPlayer = false) {
+            const vehicle = new THREE.Group();
+            const palette = [0xd83b35, 0x2674d9, 0x16a078, 0xe5a02e, 0x7c58bd, 0xcbd5e1];
+            const paint = new THREE.MeshStandardMaterial({
+                color: type === 'truck' ? 0xd5dbe3 : palette[Math.floor(Math.random() * palette.length)],
+                roughness: 0.31, metalness: 0.2
+            });
+            const glass = new THREE.MeshStandardMaterial({
+                color: 0x132131, roughness: 0.16, metalness: 0.12,
+                emissive: 0x07111d, emissiveIntensity: 0.35
+            });
+            const rubber = new THREE.MeshStandardMaterial({ color: 0x090c10, roughness: 0.9 });
+            const hub = new THREE.MeshStandardMaterial({ color: 0x8793a0, metalness: 0.8, roughness: 0.25 });
+            let halfWidth, frontZ, rearZ, lampY;
+
+            if (type === 'truck') {
+                halfWidth = 1.08; frontZ = 3.28; rearZ = -3.35; lampY = 0.92;
+                const chassis = new THREE.Mesh(new THREE.BoxGeometry(2.08, 0.38, 6.5), rubber);
+                chassis.position.set(0, 0.48, -0.15); vehicle.add(chassis);
+                const cargoMat = new THREE.MeshStandardMaterial({ color: palette[Math.floor(Math.random() * palette.length)], roughness: 0.42, metalness: 0.12 });
+                const cargo = new THREE.Mesh(new THREE.BoxGeometry(2.12, 2.15, 3.7), cargoMat);
+                cargo.position.set(0, 1.63, -1.12); vehicle.add(cargo);
+                const cargoTop = new THREE.Mesh(new THREE.BoxGeometry(2.14, 0.08, 3.72), hub);
+                cargoTop.position.set(0, 2.75, -1.12); vehicle.add(cargoTop);
+                const cab = new THREE.Mesh(new THREE.BoxGeometry(1.96, 1.42, 1.72), paint);
+                cab.position.set(0, 1.19, 2.02); vehicle.add(cab);
+                const windscreen = new THREE.Mesh(new THREE.BoxGeometry(1.65, 0.58, 0.055), glass);
+                windscreen.position.set(0, 1.48, 2.90); vehicle.add(windscreen);
+                for (const x of [-1.05, 1.05]) for (const z of [-2.5, -1.15, 2.35]) {
+                    const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.19, 14), rubber);
+                    wheel.rotation.z = Math.PI / 2; wheel.position.set(x, 0.36, z); vehicle.add(wheel);
+                    const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.20, 12), hub);
+                    rim.rotation.z = Math.PI / 2; rim.position.set(x * 1.01, 0.36, z); vehicle.add(rim);
+                }
+                // Side marker strips make the long vehicle visible to adjacent traffic.
+                const sideMarkerMat = new THREE.MeshStandardMaterial({ color: 0xffd36a, emissive: 0xffa21a, emissiveIntensity: 1.2 });
+                for (const x of [-1.07, 1.07]) {
+                    const strip = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.07, 3.0), sideMarkerMat);
+                    strip.position.set(x, 0.8, -1.05); vehicle.add(strip);
+                }
+            } else if (type === 'motorcycle') {
+                halfWidth = 0.36; frontZ = 0.98; rearZ = -0.94; lampY = 0.78;
+                const frameMat = new THREE.MeshStandardMaterial({ color: 0x303944, metalness: 0.58, roughness: 0.4 });
+                for (const z of [-0.77, 0.79]) {
+                    const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.29, 0.29, 0.14, 16), rubber);
+                    wheel.rotation.z = Math.PI / 2; wheel.position.set(0, 0.30, z); vehicle.add(wheel);
+                    const hubMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.15, 12), hub);
+                    hubMesh.rotation.z = Math.PI / 2; hubMesh.position.set(0, 0.30, z); vehicle.add(hubMesh);
+                }
+                const frame = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.22, 1.23), frameMat);
+                frame.position.set(0, 0.57, 0); vehicle.add(frame);
+                const tank = new THREE.Mesh(new THREE.SphereGeometry(0.29, 12, 10), paint);
+                tank.scale.set(0.83, 0.78, 1.12); tank.position.set(0, 0.79, 0.17); vehicle.add(tank);
+                const seat = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.12, 0.52), rubber);
+                seat.position.set(0, 0.91, -0.35); vehicle.add(seat);
+                const riderMat = new THREE.MeshStandardMaterial({ color: 0x1a2635, roughness: 0.78 });
+                const rider = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.23, 0.52, 10), riderMat);
+                rider.position.set(0, 1.20, -0.02); vehicle.add(rider);
+                const riderShoulder = new THREE.Mesh(new THREE.SphereGeometry(0.20, 10, 8), riderMat);
+                riderShoulder.position.set(0, 1.42, 0.04); vehicle.add(riderShoulder);
+                const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.19, 14, 12), new THREE.MeshStandardMaterial({ color: 0xe3eaf1, roughness: 0.22, metalness: 0.2 }));
+                helmet.position.set(0, 1.58, 0.16); vehicle.add(helmet);
+                const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.82, 8), hub);
+                handle.rotation.z = Math.PI / 2; handle.position.set(0, 1.03, 0.73); vehicle.add(handle);
+                const bikeHead = new THREE.Mesh(new THREE.SphereGeometry(0.13, 12, 10), new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xeaf4ff, emissiveIntensity: 4.2 }));
+                bikeHead.position.set(0, 0.79, 0.96); vehicle.add(bikeHead);
+            } else {
+                halfWidth = 0.9; frontZ = 2.03; rearZ = -2.03; lampY = 0.62;
+                const body = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.78, 4.0), paint);
+                body.position.y = 0.52; vehicle.add(body);
+                const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.37, 0.58, 1.9), glass);
+                cabin.position.set(0, 1.08, -0.22); vehicle.add(cabin);
+                for (const x of [-0.91, 0.91]) for (const z of [-1.25, 1.25]) {
+                    const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.31, 0.31, 0.16, 14), rubber);
+                    wheel.rotation.z = Math.PI / 2; wheel.position.set(x, 0.31, z); vehicle.add(wheel);
+                    const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.17, 12), hub);
+                    rim.rotation.z = Math.PI / 2; rim.position.set(x * 1.01, 0.31, z); vehicle.add(rim);
+                }
+            }
+
+            if (type !== 'motorcycle') addVehicleLights(vehicle, halfWidth, frontZ, rearZ, lampY);
+            else {
+                const bikeTail = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.1, 0.07), new THREE.MeshStandardMaterial({ color: 0xff251c, emissive: 0xff1008, emissiveIntensity: 3.1 }));
+                bikeTail.position.set(0, 0.84, -0.97); vehicle.add(bikeTail);
+            }
+
+            // Tiny high-intensity LED studs are emissive meshes (not expensive dynamic lights).
+            // Use a half-transparent windshield reflection on cars/trucks for a more polished look.
+            if (type === 'truck') {
+                const rearPlate = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.16, 0.035), new THREE.MeshStandardMaterial({ color: 0xdee7ed, roughness: 0.4 }));
+                rearPlate.position.set(0, 0.72, -3.405); vehicle.add(rearPlate);
+            }
+
+            const direction = laneIndex < 0 ? 1 : -1;
+            vehicle.rotation.y = direction < 0 ? Math.PI : 0;
+            flyoverGroup.add(vehicle);
+            cars.push({ mesh: vehicle, z: initialZ, laneIndex, direction, type, isPlayer });
+        }
+
+        function updateCars() {
+            const baseSpeed = parseFloat(document.getElementById('carSpeed').value) || 0.85;
+            cars.forEach(car => {
+                let currentSpeed = baseSpeed;
+                if (transLen === 0 && Math.abs(car.z - z1) < 6) currentSpeed = 0.1;
+                car.z += currentSpeed * car.direction;
+                if (car.z > totalLen - 2) car.z = 1;
+                if (car.z < 1) car.z = totalLen - 2;
+                const currentY = getElevation(car.z);
+                const currentX = getVehicleLaneX(car.z, car.laneIndex);
+                car.mesh.position.set(currentX, currentY, car.z);
+            });
+        }
+
+        function switchCameraMode() {
+            currentCamMode = document.getElementById('cameraMode').value;
+            controls.enabled = (currentCamMode === 'orbit');
+            driverHeadlights.forEach(({ light }) => { light.visible = (currentCamMode === 'driver'); });
+            cars.forEach(car => { car.mesh.visible = true; });
+
+            if (currentCamMode === 'orbit') {
+                camera.position.set(0, peakHeight + 35, -70);
+                controls.target.set(0, peakHeight / 2, totalLen / 2);
+                camera.up.set(0, 1, 0);
+                controls.update();
+            } else if (currentCamMode === 'driver') {
+                const player = cars.find(car => car.isPlayer) || cars[0];
+                if (player) {
+                    player.mesh.visible = false;
+                    const y = getElevation(player.z);
+                    const x = getVehicleLaneX(player.z, player.laneIndex);
+                    camera.position.set(x, y + 1.65, player.z + player.direction * 1.25);
+                    camera.lookAt(x, getElevation(Math.max(0, Math.min(totalLen, player.z + player.direction * 30))) + 1.1, player.z + player.direction * 30);
+                    camera.up.set(0, 1, 0);
+                }
+            } else if (currentCamMode === 'drone') {
+                droneAngle = 0;
+            }
+        }
+
+        function calculateTransitionCoordinates(length, startW, endW) {
+            const listElement = document.getElementById('coords-list');
+            listElement.innerHTML = ''; 
+
+            if (length <= 0) {
+                const li = document.createElement('li');
+                li.innerHTML = `<strong>0m</strong> ➔ Width: <strong>${startW.toFixed(2)}m</strong> <br><span style="color:#ef4444;">⚠️ Zero Transition (Severe Hazard)</span>`;
+                listElement.appendChild(li);
+                return;
+            }
+
+            let lastDist = -1;
+            for (let dist = 0; dist <= length; dist += 20) {
+                let currentWidth = startW - ((startW - endW) * (dist / length));
+                const li = document.createElement('li');
+                li.innerHTML = `<strong>${dist}m</strong> ➔ Width: <strong>${currentWidth.toFixed(2)}m</strong>`;
+                listElement.appendChild(li);
+                lastDist = dist;
+            }
+
+            if (lastDist !== length) {
+                const li = document.createElement('li');
+                li.innerHTML = `<strong>${length}m</strong> ➔ Width: <strong>${endW.toFixed(2)}m</strong> (End)`;
+                listElement.appendChild(li);
+            }
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            updateCars();
+            if (audioCtx && drivingSoundEnabled && cars.length) {
+                const speed = parseFloat(document.getElementById('carSpeed').value) || 0.5;
+                engineOsc1.frequency.setTargetAtTime(38 + speed * 34, audioCtx.currentTime, 0.08);
+                engineOsc2.frequency.setTargetAtTime(20 + speed * 19, audioCtx.currentTime, 0.08);
+                roadFilter.frequency.setTargetAtTime(250 + speed * 450, audioCtx.currentTime, 0.12);
+                // Slightly vary the stereo position as the driver camera changes direction.
+                if (spatialPanner) spatialPanner.pan.setTargetAtTime(Math.max(-0.7, Math.min(0.7, Math.sin(droneAngle) * 0.18)), audioCtx.currentTime, 0.2);
+            }
+
+            if (currentCamMode === "driver" && cars.length > 0) {
+                const leadCar = cars.find(car => car.isPlayer) || cars[0];
+                const carZ = leadCar.z;
+                const direction = leadCar.direction;
+                const lookAheadZ = Math.max(0.5, Math.min(totalLen - 0.5, carZ + direction * 35));
+                const roadY = getElevation(carZ);
+                const carX = getVehicleLaneX(carZ, leadCar.laneIndex);
+
+                driverHeadlights.forEach(({ light, target, side }) => {
+                    light.visible = true;
+                    light.position.set(carX + side * 0.48, roadY + 1.15, carZ + direction * 1.35);
+                    target.position.set(carX + side * 1.1, getElevation(lookAheadZ) + 0.08, lookAheadZ);
+                });
+
+                // First-person camera follows the player's actual lane and travel direction.
+                leadCar.mesh.visible = false;
+                camera.position.set(carX, roadY + 1.65, carZ + direction * 1.15);
+                camera.lookAt(carX, getElevation(lookAheadZ) + 1.05, lookAheadZ);
+                camera.up.set(0, 1, 0);
+            } else if (currentCamMode === "drone") {
+                driverHeadlights.forEach(({ light }) => { light.visible = false; });
+                droneAngle += 0.002;
+                let radius = totalLen * 0.85;
+                camera.position.x = Math.cos(droneAngle) * radius;
+                camera.position.z = totalLen / 2 + Math.sin(droneAngle) * radius;
+                camera.position.y = peakHeight + 65;
+                camera.lookAt(0, peakHeight / 3, totalLen / 2);
+            } else {
+                driverHeadlights.forEach(({ light }) => { light.visible = false; });
+                cars.forEach(car => { car.mesh.visible = true; });
+                controls.update();
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        refreshAudioToggle();
+        generateModel();
+        animate();
+    </script>
+</body>
+</html>
